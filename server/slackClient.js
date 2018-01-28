@@ -1,50 +1,68 @@
 const { RtmClient, CLIENT_EVENTS, RTM_EVENTS } = require('@slack/client');
 
-// Cache of data
-let appData = {};
+let slackData = {};
 let rtm = null;
 
+const doLog = (logLevel) => (
+  logLevel === 'debug' || logLevel === 'verbose'
+);
+
 const handleOnAuthenticate = (connectData) => {
-  // Cache the data necessary for this app in memory
-  appData.selfId = connectData.self.id;
-  console.log(`Logged in as ${appData.selfId} of team ${connectData.team.id}`);
+  slackData.selfId = connectData.self.id;
+  if ( doLog(slackData.logLevel) ) {
+    console.log(`Slack Client: Logged in as ${slackData.selfId} of team ${connectData.team.id}`);
+  }
 }
 
 const handleConnectionOpen = () => {
-  console.log(`Ready`);
+  if ( doLog(slackData.logLevel) ) {
+    console.log(`Slack Client: Connection open.`);
+  }
 }
 
-const handleOnMessage = (message) => {
-  console.log(message);
-  rtm.sendMessage('i like the cut of your jib', message.channel, function messageSent() {
-    console.log('i like the jib');
-  });
+const handleAtMessage = (message) => {
+  if ( doLog(slackData.logLevel) ) {
+    console.log(`Slack Client: ${message.text}.`);
+  }
 }
 
-const addAuthenticationHandler = function(rtm, handler) {
+const addAuthenticationHandler = function(handler) {
   rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, handler);
 }
 
-const addConnectionOpenHandler = function(rtm, handler) {
+const addConnectionOpenHandler = function(handler) {
   rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, handler);
 }
 
-const addOnMessageHandler = function(rtm, handler) {
+const addOnMessageHandler = function(handler) {
   rtm.on(RTM_EVENTS.MESSAGE, handler);
 }
 
+const addAtMessageHandler = function(handler) {
+  rtm.on(RTM_EVENTS.MESSAGE, (message) => {
+    const { text, user, channel } = message;
+    if (text.includes(slackData.selfId)) {
+      handler({
+        text,
+        user,
+        reply: (response) => ( rtm.sendMessage(response, channel) ) //TODO: do we want/need this?
+      });
+    }
+  });
+}
+
 module.exports.addAuthenticationHandler = addAuthenticationHandler;
+module.exports.addAtMessageHandler = addAtMessageHandler;
 module.exports.init = function slackClient(token, logLevel){
-  // Initialize the RTM client with the recommended settings. Using the defaults for these
-  // settings is deprecated.
+  slackData.logLevel = logLevel;
   rtm = new RtmClient(token, {
     dataStore: false,
     useRtmConnect: true,
     logLevel,
   });
+  rtm.start();
 
-  addAuthenticationHandler(rtm, handleOnAuthenticate);
-  addConnectionOpenHandler(rtm, handleConnectionOpen);
-  addOnMessageHandler(rtm, handleOnMessage);
-  return rtm;
+  addAuthenticationHandler(handleOnAuthenticate);
+  addConnectionOpenHandler(handleConnectionOpen);
+  addAtMessageHandler(handleAtMessage);
 }
