@@ -6,7 +6,7 @@ Bid style estimations are great for getting participation and input from all tea
 
 # How do you use it
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/nkNcH0NL2co" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+[![Demo Video](http://img.youtube.com/vi/nkNcH0NL2co/0.jpg)](http://www.youtube.com/watch?v=nkNcH0NL2co "Demo Video")
 
 1. Invite the bot _@dealer_ to the estimations room
 2. Tell the bot to start accepting bids for a task
