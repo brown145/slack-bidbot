@@ -6,6 +6,32 @@ const witToken = process.env.WIT_TOKEN;
 const witClient = require('../server/witClient')(witToken);
 const slackClient = require('../server/slackClient');
 
+module.exports.handleStateChange = function(action, state, oldState) {
+  if ((state.hand !== oldState.hand) && state.hand.currentTask) {
+    slackClient.messageTeam(`Now bidding on ${state.hand.currentTask}, expecting ${state.hand.bidders.length} bids.`);
+  }
+
+  if (state.bids !== oldState.bids) {
+    let newBids = state.bids.filter(bid => !oldState.bids.includes(bid));
+    const countBidsOnCurrentTask = state.bids.filter(bid => bid.bidTask === state.hand.currentTask).length;
+
+    newBids.forEach(bid => {
+      slackClient.messageTeamMember(`Accepted bid ${bid.bidAmount} for ${bid.bidTask}.`, bid.bidder);
+    });
+
+    if (countBidsOnCurrentTask >= state.hand.bidders.length) {
+      let bidsString = state.bids
+        .filter(bid => bid.bidTask === state.hand.currentTask)
+        .map(bid => `<@${bid.bidder}> bid: ${bid.bidAmount}`)
+        .join();
+
+      slackClient.messageTeam(`${state.hand.currentTask}: bidding complete. ${bidsString}`);
+    } else {
+      slackClient.messageTeam(`${state.hand.currentTask}: ${countBidsOnCurrentTask} of ${state.hand.bidders.length} bids.`);
+    }
+  }
+}
+
 module.exports.init = function chatClient(props) {
   const handleBidMessage = (bidProps) => {
     // TODO: validate bidExists is workign correctly
@@ -31,7 +57,11 @@ module.exports.init = function chatClient(props) {
         task: taskProps.task
       }
     }
-    props.store.dispatch(taskAction);
+    let request = slackClient.requestTeamMembers();
+    request.then((teamMembers) => {
+      taskAction.payload.bidders = teamMembers;
+      props.store.dispatch(taskAction);
+    });
   }
 
   const parseIntent = (message) => {

@@ -20,12 +20,13 @@ function reducer(state, action){
 }
 
 function handReducer(state, action){
-  const { task } = action.payload;
+  const { task, bidders } = action.payload;
   switch (action.intentAction) {
     case 'START':
       return {
         ...state,
         currentTask: task,
+        bidders,
         taskState: 'started' //TODO: maybe an Enum here
       }
       break;
@@ -72,10 +73,11 @@ function createStore(reducer, emitter) {
 
   const dispatch = (action) => {
     const oldState = state;
+    const actionText = `${action.intent}-${action.intentAction}`;
     state = reducer(state, action);
 
     // DEV NOTE: maybe check for meaningful state change
-    listeners.forEach(l => l('state-change', action, state));
+    listeners.forEach(l => l(actionText, state, oldState));
   };
 
   return {
