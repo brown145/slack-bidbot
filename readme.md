@@ -26,3 +26,11 @@ This creates a service using Express and interfaces with APIs for both Slack and
 * allow concurrent task bids
 * message hand/currenttask updates to team and as IMs
 * no longer require '@dealer' in direct messages
+
+# Installation
+1. download source project
+2. run `npm i` to install node dependencies
+3. run `node bin/setup.js` to create .env file
+4. update SLACK_TOKEN and WIT_TOKEN in .env file with appropriate tokens
+5. run 'node bin/run.js' to start service
+6. go to slack client and add bot to channel
